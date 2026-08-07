@@ -1,0 +1,6 @@
+{
+  "name": "Lost & Found",
+  "description": "A web application for reporting and retrieving lost items",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

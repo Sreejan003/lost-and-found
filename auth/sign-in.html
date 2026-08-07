@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Lost & Found Platform</title>
+  <meta name="description" content="Sign in to your Lost & Found campus account.">
+  <link rel="stylesheet" href="../assets/css/variables.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="./auth.css">
+</head>
+<body>
+
+  <a href="../index.html" class="back-btn" title="Back to Home">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+  </a>
+
+  <main class="auth-page">
+    <div class="auth-card">
+      <div class="flex justify-between items-center mb-4">
+        <a href="/" class="brand-logo">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+          </svg>
+          Lost & Found
+        </a>
+        <button type="button" class="theme-toggle" onclick="toggleTheme()"></button>
+      </div>
+
+      <div class="auth-header">
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-subtitle">Enter your credentials to access your account</p>
+      </div>
+
+      <form id="signin-form" novalidate>
+        <div class="form-group">
+          <label for="email" class="form-label">Email address</label>
+          <input type="email" id="email" class="form-input" placeholder="student@lostfound.edu" required autocomplete="email">
+          <span class="form-error"></span>
+        </div>
+
+        <div class="form-group">
+          <div class="flex justify-between items-center">
+            <label for="password" class="form-label">Password</label>
+            <a href="./forgot-password.html" class="text-xs">Forgot password?</a>
+          </div>
+          <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+          <span class="form-error"></span>
+        </div>
+
+        <button type="submit" id="btn-submit" class="btn btn-primary btn-lg" style="width: 100%;">
+          <span>Sign In</span>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="./sign-up.html" class="font-semibold">Sign up</a>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { handleSignIn } from './auth.js';
+    import { validateForm } from '../assets/js/utils.js';
+
+    const form = document.getElementById('signin-form');
+    const submitBtn = document.getElementById('btn-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validateForm(form)) return;
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span class="spinner"></span> Signing in...`;
+
+      await handleSignIn(email, password);
+
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Sign In</span>`;
+    });
+  </script>
+</body>
+</html>

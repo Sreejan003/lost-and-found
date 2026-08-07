@@ -1,0 +1,14 @@
+{
+  "name": "lost-and-found",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'Static server build complete'",
+    "lint": "echo 'No lint script'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

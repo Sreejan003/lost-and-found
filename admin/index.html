@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Lost & Found Platform</title>
+  <link rel="stylesheet" href="../assets/css/variables.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/layout.css">
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body class="app-layout">
+
+  <!-- Admin Navbar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <div class="flex items-center gap-3">
+        <a href="./dashboard.html" class="brand-logo">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+          </svg>
+          Campus Lost & Found
+        </a>
+        <span class="admin-header-badge">Admin Portal</span>
+      </div>
+
+      <nav>
+        <ul class="nav-links">
+          <li><span class="text-sm font-medium" id="admin-user-name">Admin</span></li>
+          <li><button type="button" class="theme-toggle" onclick="toggleTheme()"></button></li>
+          <li><button type="button" class="btn btn-outline btn-sm" onclick="handleLogout()">Sign Out</button></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      
+      <div class="page-header">
+        <h1 class="page-title">Moderation & Analytics Dashboard</h1>
+        <p class="page-subtitle">Manage reported items, user accounts, claims verification, and platform statistics</p>
+      </div>
+
+      <!-- ANALYTICS CARDS -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Reports</span>
+          <span id="metric-total-items" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Active Feed Items</span>
+          <span id="metric-active-items" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Items Returned</span>
+          <span id="metric-returned-items" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Registered Users</span>
+          <span id="metric-users" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Claims Submitted</span>
+          <span id="metric-claims" class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Lost vs Found Ratio</span>
+          <span id="metric-ratio" class="stat-value">1 : 1</span>
+        </div>
+      </div>
+
+      <!-- ADMIN TABS -->
+      <div class="flex gap-3 mb-6" style="border-bottom: 1px solid var(--border-subtle);">
+        <button class="btn btn-secondary tab-btn active" data-tab="admin-tab-moderation">Report Moderation</button>
+        <button class="btn btn-secondary tab-btn" data-tab="admin-tab-claims">Claims Verification</button>
+        <button class="btn btn-secondary tab-btn" data-tab="admin-tab-users">User Management</button>
+      </div>
+
+      <!-- TAB 1: REPORT MODERATION -->
+      <section id="admin-tab-moderation" class="tab-content">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Item Title</th>
+                <th>Type</th>
+                <th>Category / Location</th>
+                <th>Reporter</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="moderation-table-body">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 2: CLAIMS VERIFICATION -->
+      <section id="admin-tab-claims" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Claimer</th>
+                <th>Ownership Proof</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="claims-table-body">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: USER MANAGEMENT -->
+      <section id="admin-tab-users" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>User / Email</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Account Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>
