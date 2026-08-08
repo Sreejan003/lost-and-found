@@ -530,10 +530,13 @@ export async function fetchSupabaseItems() {
         const deletedIds = LocalDB.getCollection(DB_KEYS.DELETED_ITEMS).map(id => String(id));
         const itemMap = new Map();
         
-        // Add remote items first with mapped image_url
+        // 1. Add global remote items from Supabase
         itemsData.forEach(item => {
           if (!deletedIds.includes(String(item.id))) {
             const mappedItem = {
+              status: item.status || 'active',
+              category_name: item.category || 'Other',
+              location_name: item.location || 'Campus',
               ...item,
               image_url: item.image_url || imageMap.get(String(item.id)) || ''
             };
@@ -541,21 +544,42 @@ export async function fetchSupabaseItems() {
           }
         });
 
-        // Merge local items so local user uploads & status updates are preserved
-        localItems.forEach(localItem => {
-          if (!deletedIds.includes(String(localItem.id))) {
-            const remoteItem = itemMap.get(String(localItem.id));
-            if (!remoteItem) {
-              itemMap.set(String(localItem.id), localItem);
-            } else {
-              itemMap.set(String(localItem.id), {
-                ...remoteItem,
-                ...localItem,
-                image_url: localItem.image_url || remoteItem.image_url || ''
-              });
+        // 2. Background sync any local-only items to Supabase so all users see them
+        for (const localItem of localItems) {
+          if (localItem && localItem.title && !deletedIds.includes(String(localItem.id))) {
+            const existsRemote = itemsData.some(r => String(r.id) === String(localItem.id) || (r.title === localItem.title && String(r.description || '') === String(localItem.description || '')));
+            if (!existsRemote && localItem.id && String(localItem.id).length > 10) {
+              try {
+                const dbPayload = {
+                  title: localItem.title,
+                  description: localItem.description || '',
+                  category: localItem.category_name || localItem.category || 'Other',
+                  category_id: localItem.category_id || null,
+                  location: localItem.location_name || localItem.location || 'Campus',
+                  location_id: localItem.location_id || null,
+                  item_type: localItem.item_type || 'lost',
+                  reported_date: localItem.reported_date || new Date().toISOString().split('T')[0],
+                  color: localItem.color || '',
+                  distinguishing_features: localItem.distinguishing_features || '',
+                  image_url: localItem.image_url || '',
+                  status: localItem.status || 'active'
+                };
+                const { data: synced } = await supabaseClient.from('items').insert([dbPayload]).select();
+                if (synced && synced[0]) {
+                  const sItem = {
+                    ...synced[0],
+                    category_name: synced[0].category || localItem.category_name,
+                    location_name: synced[0].location || localItem.location_name,
+                    image_url: localItem.image_url || ''
+                  };
+                  itemMap.set(String(synced[0].id), sItem);
+                }
+              } catch (syncErr) {
+                console.warn("Background item sync notice:", syncErr);
+              }
             }
           }
-        });
+        }
 
         const merged = Array.from(itemMap.values());
         LocalDB.saveCollection(DB_KEYS.ITEMS, merged);

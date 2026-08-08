@@ -96,9 +96,7 @@
     let items = [];
 
     async function renderFeed(query = '') {
-      if (items.length === 0) {
-        items = await fetchSupabaseItems();
-      }
+      items = await fetchSupabaseItems();
       const filtered = filterItems(items, { searchQuery: query, status: 'active' });
       
       if (filtered.length === 0) {
