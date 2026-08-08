@@ -9,11 +9,12 @@ import {
   fetchSupabaseUsers, 
   fetchSupabaseContacts 
 } from '../assets/js/supabase.js';
-import { initTheme, toggleTheme, showToast, formatDate, escapeHTML } from '../assets/js/utils.js';
+import { initTheme, toggleTheme, showToast, formatDate, escapeHTML, toggleProfileMenu } from '../assets/js/utils.js';
 import { checkAuthGuard, handleLogout } from '../auth/auth.js';
 
 window.toggleTheme = toggleTheme;
 window.handleLogout = handleLogout;
+window.toggleProfileMenu = toggleProfileMenu;
 
 let currentUser = null;
 let currentItems = [];
@@ -31,8 +32,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function renderAdminInfo() {
+  if (!currentUser) return;
+  const nameStr = currentUser.full_name || currentUser.email || 'Admin';
+  const initialStr = nameStr.charAt(0).toUpperCase();
+
   const el = document.getElementById('admin-user-name');
-  if (el) el.textContent = currentUser.full_name || currentUser.email;
+  const avatarEl = document.getElementById('nav-user-avatar');
+  const dropdownNameEl = document.getElementById('dropdown-user-name');
+  const dropdownRoleEl = document.getElementById('dropdown-user-role');
+
+  if (el) el.textContent = nameStr;
+  if (avatarEl) avatarEl.textContent = initialStr;
+  if (dropdownNameEl) dropdownNameEl.textContent = nameStr;
+  if (dropdownRoleEl) dropdownRoleEl.textContent = currentUser.email || 'Administrator';
 }
 
 // 1. MASTER ASYNC DATA LOAD FROM SUPABASE

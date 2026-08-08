@@ -3,7 +3,7 @@
    ========================================================================== */
 
 import { LocalDB, supabaseClient, fetchSupabaseItems, fetchSupabaseCategories, fetchSupabaseLocations } from '../assets/js/supabase.js';
-import { initTheme, toggleTheme, showToast, openModal, closeModal, formatDate, debounce, escapeHTML, getItemImage } from '../assets/js/utils.js';
+import { initTheme, toggleTheme, showToast, openModal, closeModal, formatDate, debounce, escapeHTML, getItemImage, toggleProfileMenu } from '../assets/js/utils.js';
 import { filterItems } from '../assets/js/search.js';
 import { generateAIDescription } from '../assets/js/ai-engine.js';
 import { uploadItemImage } from '../assets/js/storage.js';
@@ -13,6 +13,7 @@ import '../assets/js/cleanup-cron.js';
 // Global exports for HTML inline handlers
 window.toggleTheme = toggleTheme;
 window.handleLogout = handleLogout;
+window.toggleProfileMenu = toggleProfileMenu;
 
 let currentUser = null;
 let allItems = [];
@@ -33,10 +34,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Render user profile info in navbar
 function renderUserNav() {
+  if (!currentUser) return;
+  const nameStr = currentUser.full_name || currentUser.email || 'User';
+  const initialStr = nameStr.charAt(0).toUpperCase();
+
   const nameEl = document.getElementById('nav-user-name');
   const avatarEl = document.getElementById('nav-user-avatar');
-  if (nameEl) nameEl.textContent = currentUser.full_name || currentUser.email;
-  if (avatarEl) avatarEl.textContent = (currentUser.full_name || currentUser.email).charAt(0).toUpperCase();
+  const dropdownNameEl = document.getElementById('dropdown-user-name');
+  const dropdownRoleEl = document.getElementById('dropdown-user-role');
+
+  if (nameEl) nameEl.textContent = nameStr;
+  if (avatarEl) avatarEl.textContent = initialStr;
+  if (dropdownNameEl) dropdownNameEl.textContent = nameStr;
+  if (dropdownRoleEl) dropdownRoleEl.textContent = currentUser.email || (currentUser.role ? currentUser.role.toUpperCase() : 'Student');
 }
 
 // Load Categories and Locations
