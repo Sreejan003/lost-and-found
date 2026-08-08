@@ -263,17 +263,25 @@ export const LocalDB = {
           console.warn("Notice: Supabase insert attempt notice:", insertError);
           if (dbPayload.user_id) {
             delete dbPayload.user_id;
-            const { data: retryData } = await supabaseClient.from('items').insert([dbPayload]).select().catch(() => ({ data: null }));
-            if (retryData && retryData[0]) remoteItem = retryData[0];
+            try {
+              const { data: retryData } = await supabaseClient.from('items').insert([dbPayload]).select();
+              if (retryData && retryData[0]) remoteItem = retryData[0];
+            } catch (rErr) {
+              console.warn("Notice: retry insert error:", rErr);
+            }
           }
         }
 
         if (newItem.image_url && remoteItem && remoteItem.id) {
-          await supabaseClient.from('images').insert([{
-            item_id: remoteItem.id,
-            image_url: newItem.image_url,
-            is_primary: true
-          }]).catch(e => console.warn("Supabase images table insert notice:", e));
+          try {
+            await supabaseClient.from('images').insert([{
+              item_id: remoteItem.id,
+              image_url: newItem.image_url,
+              is_primary: true
+            }]);
+          } catch (imgErr) {
+            console.warn("Supabase images table insert notice:", imgErr);
+          }
         }
 
         if (remoteItem && remoteItem.id) {
@@ -305,11 +313,13 @@ export const LocalDB = {
     if (supabaseClient) {
       try {
         await supabaseClient.from('items').delete().eq('id', id);
-        await supabaseClient.from('images').delete().eq('item_id', id).catch(() => {});
-        await supabaseClient.from('contacts').delete().eq('item_id', id).catch(() => {});
-      } catch (e) {
-        console.warn("Supabase item delete notice:", e);
-      }
+      } catch (e) {}
+      try {
+        await supabaseClient.from('images').delete().eq('item_id', id);
+      } catch (e) {}
+      try {
+        await supabaseClient.from('contacts').delete().eq('item_id', id);
+      } catch (e) {}
     }
   },
 
