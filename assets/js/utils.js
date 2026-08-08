@@ -174,8 +174,10 @@ export function validateForm(form) {
 
 // --- 8. Robust Image Resolver ---
 export function getItemImage(item) {
-  if (item && item.image_url && String(item.image_url).trim().length > 5 && !item.image_url.includes('unsplash.com')) {
-    return item.image_url;
+  if (!item) return '';
+  const url = item.image_url || item.image || item.imageUrl || item.photo_url || '';
+  if (url && String(url).trim().length > 5 && !url.includes('unsplash.com')) {
+    return String(url).trim();
   }
   return '';
 }

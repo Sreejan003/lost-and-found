@@ -9,7 +9,13 @@ let supabaseClient = null;
 
 try {
   if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && !CONFIG.SUPABASE_URL.includes("YOUR_SUPABASE")) {
-    supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
+    });
   }
 } catch (e) {
   console.warn("Supabase SDK initialization notice - operating with local persistence database:", e);
@@ -244,6 +250,7 @@ export const LocalDB = {
           reported_date: newItem.reported_date,
           color: newItem.color || '',
           distinguishing_features: newItem.distinguishing_features || '',
+          image_url: newItem.image_url || '',
           status: newItem.status || 'active'
         };
 
@@ -261,14 +268,14 @@ export const LocalDB = {
           remoteItem = insertedData[0];
         } else if (insertError) {
           console.warn("Notice: Supabase insert attempt notice:", insertError);
-          if (dbPayload.user_id) {
-            delete dbPayload.user_id;
-            try {
-              const { data: retryData } = await supabaseClient.from('items').insert([dbPayload]).select();
-              if (retryData && retryData[0]) remoteItem = retryData[0];
-            } catch (rErr) {
-              console.warn("Notice: retry insert error:", rErr);
-            }
+          // Omit image_url and user_id if column missing or constraint failure
+          delete dbPayload.image_url;
+          if (dbPayload.user_id) delete dbPayload.user_id;
+          try {
+            const { data: retryData } = await supabaseClient.from('items').insert([dbPayload]).select();
+            if (retryData && retryData[0]) remoteItem = retryData[0];
+          } catch (rErr) {
+            console.warn("Notice: retry insert error:", rErr);
           }
         }
 
@@ -359,7 +366,7 @@ export const LocalDB = {
       status: claimData.status || 'pending'
     });
   },
-  updateClaimStatus(claimId, status, adminNotes = '') {
+  async updateClaimStatus(claimId, status, adminNotes = '') {
     const contacts = this.getCollection(DB_KEYS.CONTACTS);
     const idx = contacts.findIndex(c => String(c.id) === String(claimId));
     if (idx >= 0) {
@@ -528,6 +535,7 @@ export async function fetchSupabaseItems() {
               if (img.item_id && img.image_url) {
                 if (!imageMap.has(String(img.item_id)) || img.is_primary) {
                   imageMap.set(String(img.item_id), img.image_url);
+                  imageMap.set(Number(img.item_id), img.image_url);
                 }
               }
             });
@@ -543,12 +551,15 @@ export async function fetchSupabaseItems() {
         // 1. Add global remote items from Supabase
         itemsData.forEach(item => {
           if (!deletedIds.includes(String(item.id))) {
+            const localMatch = localItems.find(l => String(l.id) === String(item.id) || l.title === item.title);
+            const resolvedImg = item.image_url || imageMap.get(String(item.id)) || imageMap.get(Number(item.id)) || localMatch?.image_url || '';
+
             const mappedItem = {
               status: item.status || 'active',
               category_name: item.category || 'Other',
               location_name: item.location || 'Campus',
               ...item,
-              image_url: item.image_url || imageMap.get(String(item.id)) || ''
+              image_url: resolvedImg
             };
             itemMap.set(String(item.id), mappedItem);
           }
