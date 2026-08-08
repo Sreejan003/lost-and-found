@@ -48,13 +48,38 @@ export function optimizeImage(file, maxWidth = 1000, quality = 0.75) {
 export async function uploadItemImage(file) {
   if (!file) return '';
   try {
-    const optimizedDataUrl = await optimizeImage(file);
+    const optimizedDataUrl = await optimizeImage(file, 700, 0.7);
+
+    if (supabaseClient) {
+      try {
+        const fileExt = file.name ? file.name.split('.').pop() : 'jpg';
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+        const filePath = `items/${fileName}`;
+
+        const bucketName = CONFIG.STORAGE_BUCKET || 'item-images';
+        const { data, error } = await supabaseClient.storage
+          .from(bucketName)
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+        if (!error && data) {
+          const { data: publicUrlData } = supabaseClient.storage
+            .from(bucketName)
+            .getPublicUrl(filePath);
+          if (publicUrlData && publicUrlData.publicUrl) {
+            return publicUrlData.publicUrl;
+          }
+        }
+      } catch (storageErr) {
+        console.warn("Notice: Supabase Storage upload fallback to DataURL:", storageErr);
+      }
+    }
+
     return optimizedDataUrl;
   } catch (err) {
     console.error("Image optimization exception, fallback to raw reader:", err);
     return new Promise(resolve => {
       const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
+      reader.onload = e => resolve(e.target.result || '');
       reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });

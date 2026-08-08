@@ -213,23 +213,38 @@ export const LocalDB = {
 
     if (supabaseClient) {
       const dbPayload = {
-        id: newItem.id,
-        user_id: newItem.user_id,
         title: newItem.title,
         description: newItem.description,
-        category: newItem.category || '',
+        category: newItem.category_name || newItem.category || '',
         category_id: newItem.category_id || null,
-        location: newItem.location || 'Campus',
+        location: newItem.location_name || newItem.location || 'Campus',
         location_id: newItem.location_id || null,
         item_type: newItem.item_type,
         reported_date: newItem.reported_date,
         color: newItem.color || '',
         distinguishing_features: newItem.distinguishing_features || '',
-        image_url: newItem.image_url || '',
-        status: newItem.status || 'active',
-        created_at: newItem.created_at
+        status: newItem.status || 'active'
       };
-      supabaseClient.from('items').upsert(dbPayload).catch(e => console.warn("Notice syncing item to Supabase:", e));
+
+      if (newItem.user_id && String(newItem.user_id).includes('-')) {
+        dbPayload.user_id = newItem.user_id;
+      }
+
+      supabaseClient.from('items').insert([dbPayload]).select().then(async ({ data, error }) => {
+        if (!error && data && data[0]) {
+          const savedRemoteItem = data[0];
+          if (newItem.image_url) {
+            await supabaseClient.from('images').insert([{
+              item_id: savedRemoteItem.id,
+              image_url: newItem.image_url,
+              is_primary: true
+            }]).catch(e => console.warn("Supabase image table notice:", e));
+          }
+        } else if (error) {
+          const fallbackPayload = { ...dbPayload, id: newItem.id };
+          supabaseClient.from('items').upsert([fallbackPayload]).catch(e => console.warn("Supabase item sync fallback notice:", e));
+        }
+      }).catch(e => console.warn("Supabase item sync exception:", e));
     }
 
     return newItem;
@@ -440,30 +455,55 @@ export const LocalDB = {
 export async function fetchSupabaseItems() {
   if (supabaseClient) {
     try {
-      const { data, error } = await supabaseClient.from('items').select('*').order('created_at', { ascending: false });
-      if (!error && data) {
+      const { data: itemsData, error: itemsError } = await supabaseClient
+        .from('items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!itemsError && itemsData) {
+        let imageMap = new Map();
+        try {
+          const { data: imagesData } = await supabaseClient.from('images').select('*');
+          if (imagesData && Array.isArray(imagesData)) {
+            imagesData.forEach(img => {
+              if (img.item_id && img.image_url) {
+                if (!imageMap.has(String(img.item_id)) || img.is_primary) {
+                  imageMap.set(String(img.item_id), img.image_url);
+                }
+              }
+            });
+          }
+        } catch (imgErr) {
+          console.warn("Notice: images table query notice:", imgErr);
+        }
+
         const localItems = LocalDB.getCollection(DB_KEYS.ITEMS);
         const deletedIds = LocalDB.getCollection(DB_KEYS.DELETED_ITEMS).map(id => String(id));
         const itemMap = new Map();
         
-        // Add remote items first
-        data.forEach(item => {
+        // Add remote items first with mapped image_url
+        itemsData.forEach(item => {
           if (!deletedIds.includes(String(item.id))) {
-            itemMap.set(String(item.id), item);
+            const mappedItem = {
+              ...item,
+              image_url: item.image_url || imageMap.get(String(item.id)) || ''
+            };
+            itemMap.set(String(item.id), mappedItem);
           }
         });
 
-        // Merge local items so local status updates (e.g. status='returned') are preserved
+        // Merge local items so local user uploads & status updates are preserved
         localItems.forEach(localItem => {
           if (!deletedIds.includes(String(localItem.id))) {
             const remoteItem = itemMap.get(String(localItem.id));
             if (!remoteItem) {
               itemMap.set(String(localItem.id), localItem);
             } else {
-              if (localItem.status === 'returned') {
-                remoteItem.status = 'returned';
-              }
-              itemMap.set(String(localItem.id), { ...remoteItem, ...localItem });
+              itemMap.set(String(localItem.id), {
+                ...remoteItem,
+                ...localItem,
+                image_url: localItem.image_url || remoteItem.image_url || ''
+              });
             }
           }
         });
