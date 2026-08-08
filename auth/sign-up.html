@@ -34,10 +34,6 @@
       </div>
 
       <form id="signup-form" novalidate>
-        <div class="role-selector">
-          <button type="button" class="role-btn active" data-role="student">Student User</button>
-          <button type="button" class="role-btn" data-role="admin">Admin Moderator</button>
-        </div>
         <input type="hidden" id="role" value="student">
 
         <div class="form-group">
@@ -78,16 +74,7 @@
     import { handleSignUp } from './auth.js';
     import { validateForm } from '../assets/js/utils.js';
 
-    const roleBtns = document.querySelectorAll('.role-btn');
-    const roleInput = document.getElementById('role');
 
-    roleBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        roleBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        roleInput.value = btn.getAttribute('data-role');
-      });
-    });
 
     const form = document.getElementById('signup-form');
     const submitBtn = document.getElementById('btn-submit');

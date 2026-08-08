@@ -121,6 +121,23 @@ function initLocalStorage() {
   }
   if (!localStorage.getItem(DB_KEYS.ITEMS)) {
     localStorage.setItem(DB_KEYS.ITEMS, JSON.stringify(DEFAULT_ITEMS));
+  } else {
+    // Scrub stock image URLs from local database cache
+    try {
+      const storedItems = JSON.parse(localStorage.getItem(DB_KEYS.ITEMS) || '[]');
+      if (Array.isArray(storedItems)) {
+        let modified = false;
+        storedItems.forEach(item => {
+          if (item.image_url && item.image_url.includes('unsplash.com')) {
+            item.image_url = '';
+            modified = true;
+          }
+        });
+        if (modified) {
+          localStorage.setItem(DB_KEYS.ITEMS, JSON.stringify(storedItems));
+        }
+      }
+    } catch (e) {}
   }
   if (!localStorage.getItem(DB_KEYS.CONTACTS)) {
     localStorage.setItem(DB_KEYS.CONTACTS, JSON.stringify([]));
@@ -275,7 +292,7 @@ export const LocalDB = {
 
     return newItem;
   },
-  deleteItem(id) {
+  async deleteItem(id) {
     const items = this.getCollection(DB_KEYS.ITEMS).filter(i => String(i.id) !== String(id));
     this.saveCollection(DB_KEYS.ITEMS, items);
 
@@ -286,7 +303,13 @@ export const LocalDB = {
     }
 
     if (supabaseClient) {
-      supabaseClient.from('items').delete().eq('id', id).catch(e => console.warn("Supabase item delete notice:", e));
+      try {
+        await supabaseClient.from('items').delete().eq('id', id);
+        await supabaseClient.from('images').delete().eq('item_id', id).catch(() => {});
+        await supabaseClient.from('contacts').delete().eq('item_id', id).catch(() => {});
+      } catch (e) {
+        console.warn("Supabase item delete notice:", e);
+      }
     }
   },
 

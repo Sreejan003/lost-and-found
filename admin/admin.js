@@ -118,11 +118,9 @@ function renderModerationTable() {
 
 window.adminDeletePost = async (id) => {
   if (confirm('Admin Action: Delete this report permanently?')) {
-    LocalDB.deleteItem(id);
-    currentItems = LocalDB.getItems();
-    renderAnalytics();
-    renderModerationTable();
+    await LocalDB.deleteItem(id);
     showToast('Report deleted by moderator.', 'success');
+    await loadAllAdminData();
   }
 };
 

@@ -174,26 +174,10 @@ export function validateForm(form) {
 
 // --- 8. Robust Image Resolver ---
 export function getItemImage(item) {
-  if (item && item.image_url && String(item.image_url).trim().length > 5) {
+  if (item && item.image_url && String(item.image_url).trim().length > 5 && !item.image_url.includes('unsplash.com')) {
     return item.image_url;
   }
-  const cat = String(item?.category_name || item?.category || '').toLowerCase();
-  if (cat.includes('electr') || cat.includes('phone') || cat.includes('laptop') || cat.includes('headphone')) {
-    return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80';
-  }
-  if (cat.includes('doc') || cat.includes('id') || cat.includes('card') || cat.includes('paper')) {
-    return 'https://images.unsplash.com/photo-1578574577315-3fbeb0cecdc2?auto=format&fit=crop&w=600&q=80';
-  }
-  if (cat.includes('access') || cat.includes('watch') || cat.includes('bottle') || cat.includes('bag') || cat.includes('wallet')) {
-    return 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80';
-  }
-  if (cat.includes('cloth') || cat.includes('wear') || cat.includes('jacket') || cat.includes('hoodie') || cat.includes('shirt')) {
-    return 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80';
-  }
-  if (cat.includes('book') || cat.includes('station') || cat.includes('pen') || cat.includes('textbook')) {
-    return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
-  }
-  return 'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80';
+  return '';
 }
 
 // --- 9. Profile Dropdown Toggle ---

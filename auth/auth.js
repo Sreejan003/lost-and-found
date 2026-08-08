@@ -125,7 +125,8 @@ export async function handleSignIn(email, password) {
 }
 
 // Sign Up Handler
-export async function handleSignUp({ email, password, fullName, phone, role }) {
+export async function handleSignUp({ email, password, fullName, phone }) {
+  const assignedRole = (email && email.toLowerCase().includes('admin')) ? 'admin' : 'student';
   try {
     let newUser = null;
     let authError = null;
@@ -137,7 +138,7 @@ export async function handleSignUp({ email, password, fullName, phone, role }) {
           email,
           password,
           options: {
-            data: { full_name: fullName, role: role || 'student', phone }
+            data: { full_name: fullName, role: assignedRole, phone }
           }
         });
 
