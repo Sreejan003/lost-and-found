@@ -45,9 +45,14 @@ CREATE TABLE IF NOT EXISTS items (
     last_seen_date DATE,
     color TEXT,
     distinguishing_features TEXT,
+    image_url TEXT,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'claimed', 'returned', 'flagged')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- OPTIONAL TABLE MIGRATIONS (Run if tables already exist)
+ALTER TABLE items ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS admin_notes TEXT;
 
 -- 5. IMAGES TABLE
 CREATE TABLE IF NOT EXISTS images (

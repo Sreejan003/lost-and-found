@@ -113,7 +113,7 @@
   </main>
 
   <script type="module">
-    import { LocalDB } from '../assets/js/supabase.js';
+    import { LocalDB, fetchSupabaseItems, fetchSupabaseContacts } from '../assets/js/supabase.js';
     import { initTheme, toggleTheme, showToast, formatDate, escapeHTML } from '../assets/js/utils.js';
     import { checkAuthGuard, handleLogout } from '../auth/auth.js';
 
@@ -122,13 +122,21 @@
 
     let currentUser = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       initTheme();
       currentUser = checkAuthGuard('student');
       if (!currentUser) return;
 
       renderProfile();
       setupTabs();
+      
+      try {
+        await fetchSupabaseItems();
+        await fetchSupabaseContacts();
+      } catch (err) {
+        console.warn("Supabase profile sync notice:", err);
+      }
+
       loadUserReports();
       loadUserClaims();
       loadUserNotifications();
@@ -136,10 +144,15 @@
     });
 
     function renderProfile() {
-      document.getElementById('profile-name').textContent = currentUser.full_name || 'Campus Student';
-      document.getElementById('profile-email').textContent = currentUser.email;
-      document.getElementById('profile-role').textContent = currentUser.role.toUpperCase();
-      document.getElementById('profile-avatar').textContent = (currentUser.full_name || currentUser.email).charAt(0).toUpperCase();
+      const nameEl = document.getElementById('profile-name');
+      const emailEl = document.getElementById('profile-email');
+      const roleEl = document.getElementById('profile-role');
+      const avatarEl = document.getElementById('profile-avatar');
+
+      if (nameEl) nameEl.textContent = currentUser.full_name || 'Campus Student';
+      if (emailEl) emailEl.textContent = currentUser.email;
+      if (roleEl) roleEl.textContent = (currentUser.role || 'student').toUpperCase();
+      if (avatarEl) avatarEl.textContent = (currentUser.full_name || currentUser.email).charAt(0).toUpperCase();
     }
 
     function setupTabs() {
@@ -151,7 +164,8 @@
 
           tab.classList.add('active');
           const target = tab.getAttribute('data-tab');
-          document.getElementById(target).style.display = 'block';
+          const el = document.getElementById(target);
+          if (el) el.style.display = 'block';
         });
       });
 
@@ -162,7 +176,11 @@
     }
 
     function loadUserReports() {
-      const items = LocalDB.getItems().filter(i => String(i.user_id) === String(currentUser.id));
+      const items = LocalDB.getItems().filter(i => 
+        String(i.user_id) === String(currentUser.id) ||
+        (currentUser.email && i.owner && i.owner.email && i.owner.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+        (currentUser.email && String(i.user_id).toLowerCase() === currentUser.email.toLowerCase())
+      );
       const container = document.getElementById('my-reports-list');
 
       if (items.length === 0) {
