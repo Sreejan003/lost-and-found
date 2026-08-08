@@ -109,9 +109,10 @@ export function formatDate(dateString) {
 
 // --- 6. Modal Controller ---
 export function openModal(modalId) {
-  const modal = document.getElementById(modalId);
+  const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
   if (modal) {
     modal.classList.add('open');
+    modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     const firstInput = modal.querySelector('input, select, textarea, button:not(.modal-close)');
     if (firstInput) firstInput.focus();
@@ -119,9 +120,10 @@ export function openModal(modalId) {
 }
 
 export function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
+  const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
   if (modal) {
     modal.classList.remove('open');
+    modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
   }
 }

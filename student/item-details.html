@@ -355,37 +355,54 @@
       }));
 
       const claimForm = document.getElementById('form-claim-item');
-      claimForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const proof = document.getElementById('claim-proof').value.trim();
-        const verifyQ = document.getElementById('claim-location-verification').value.trim();
+        let isClaimSubmitting = false;
+        claimForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          if (isClaimSubmitting) return;
 
-        if (!proof || !verifyQ) {
-          showToast('Please complete all verification details.', 'error');
-          return;
-        }
+          const proof = document.getElementById('claim-proof')?.value.trim() || '';
+          const verifyQ = document.getElementById('claim-location-verification')?.value.trim() || '';
 
-        LocalDB.saveClaim({
-          item_id: itemId,
-          claimer_id: currentUser.id,
-          proof_description: proof,
-          verification_answers: { location_details: verifyQ }
+          if (!proof || !verifyQ) {
+            showToast('Please complete all verification details.', 'error');
+            return;
+          }
+
+          isClaimSubmitting = true;
+          try {
+            LocalDB.saveClaim({
+              item_id: itemId,
+              claimer_id: currentUser?.id || 'anonymous',
+              proof_description: proof,
+              verification_answers: { location_details: verifyQ }
+            });
+
+            closeModal('modal-claim-item');
+            claimForm.reset();
+            showToast('Ownership claim submitted for verification!', 'success');
+
+            // Send Notification to Item Owner
+            if (currentItem && currentItem.user_id && typeof LocalDB.createNotification === 'function') {
+              try {
+                LocalDB.createNotification(
+                  currentItem.user_id,
+                  'New Claim Received',
+                  `${currentUser?.full_name || 'A user'} submitted an ownership claim on your reported item "${currentItem.title}".`,
+                  'info',
+                  itemId
+                );
+              } catch (nErr) {
+                console.warn("Claim notification notice:", nErr);
+              }
+            }
+          } catch (err) {
+            console.error("Error submitting claim:", err);
+            showToast('Error submitting claim: ' + (err?.message || 'Unexpected error'), 'error');
+          } finally {
+            isClaimSubmitting = false;
+          }
         });
-
-        // Send Notification to Item Owner
-        LocalDB.createNotification(
-          currentItem.user_id,
-          'New Claim Received',
-          `${currentUser.full_name} submitted an ownership claim on your reported item "${currentItem.title}".`,
-          'info',
-          itemId
-        );
-
-        showToast('Ownership claim submitted for verification!', 'success');
-        closeModal('modal-claim-item');
-        claimForm.reset();
-      });
-    }
+      }
   </script>
 </body>
 </html>

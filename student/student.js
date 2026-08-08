@@ -283,22 +283,26 @@ export async function handleAIGeneration(e) {
 
 window.handleAIGeneration = handleAIGeneration;
 
+let isPostSubmitting = false;
+
 // Post New Item Form Submit
 async function handlePostItemSubmit(e) {
   e.preventDefault();
+  if (isPostSubmitting) return;
+
   const form = e.target;
   const submitBtn = form.querySelector('button[type="submit"]');
 
-  const title = document.getElementById('modal-title').value.trim();
-  const description = document.getElementById('modal-description').value.trim();
-  const categoryRaw = document.getElementById('modal-category').value;
-  const locationRaw = document.getElementById('modal-location').value;
+  const title = document.getElementById('modal-title')?.value.trim() || '';
+  const description = document.getElementById('modal-description')?.value.trim() || '';
+  const categoryRaw = document.getElementById('modal-category')?.value;
+  const locationRaw = document.getElementById('modal-location')?.value;
   const category_id = (categoryRaw && categoryRaw !== 'all') ? (isNaN(Number(categoryRaw)) ? categoryRaw : Number(categoryRaw)) : null;
   const location_id = (locationRaw && locationRaw !== 'all') ? (isNaN(Number(locationRaw)) ? locationRaw : Number(locationRaw)) : null;
-  const item_type = document.getElementById('modal-type').value;
-  const color = document.getElementById('modal-color').value.trim();
-  const features = document.getElementById('modal-features').value.trim();
-  const imageFile = document.getElementById('modal-image').files[0];
+  const item_type = document.getElementById('modal-type')?.value || 'lost';
+  const color = document.getElementById('modal-color')?.value.trim() || '';
+  const features = document.getElementById('modal-features')?.value.trim() || '';
+  const imageFile = document.getElementById('modal-image')?.files[0];
 
   const reported_date = document.getElementById('modal-date')?.value || new Date().toISOString().split('T')[0];
   const dateObj = new Date(reported_date);
@@ -319,8 +323,11 @@ async function handlePostItemSubmit(e) {
     return;
   }
 
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = `<span class="spinner"></span> Submitting report...`;
+  isPostSubmitting = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="spinner"></span> Submitting report...`;
+  }
 
   try {
     let imageUrl = '';
@@ -328,8 +335,10 @@ async function handlePostItemSubmit(e) {
       imageUrl = await uploadItemImage(imageFile);
     }
 
+    const userId = currentUser?.id || 'anonymous';
+
     const newItem = LocalDB.saveItem({
-      user_id: currentUser.id,
+      user_id: userId,
       title,
       description,
       category_id,
@@ -343,30 +352,44 @@ async function handlePostItemSubmit(e) {
       is_ai_generated: description.includes('AI') || Boolean(document.getElementById('modal-ai-prompt')?.value)
     });
 
-    // Notify other users of match (simplified trigger)
-    if (currentUser && currentUser.id) {
-      LocalDB.createNotification(
-        currentUser.id,
-        'Item Posted',
-        `Your ${item_type} item "${title}" has been successfully published.`,
-        'success',
-        newItem.id
-      );
-    }
-
-    showToast(`New ${item_type} item reported!`, 'success');
+    // 1. Instantly close modal and reset form to prevent double-submitting/glitching
     closeModal('modal-post-item');
     form.reset();
-    await loadItemsFeed();
-    updateNotificationBadge();
+    showToast(`New ${item_type} item reported successfully!`, 'success');
+
+    // 2. Safe notification dispatch
+    if (userId && typeof LocalDB.createNotification === 'function') {
+      try {
+        LocalDB.createNotification(
+          userId,
+          'Item Posted',
+          `Your ${item_type} item "${title}" has been successfully published.`,
+          'success',
+          newItem.id
+        );
+      } catch (notifErr) {
+        console.warn("Notice: notification creation skipped:", notifErr);
+      }
+    }
+
+    // 3. Refresh items feed & notifications
+    try {
+      await loadItemsFeed();
+      updateNotificationBadge();
+    } catch (feedErr) {
+      console.warn("Notice: feed refresh error:", feedErr);
+    }
 
   } catch (err) {
     console.error("Error posting item:", err);
     const errMsg = err?.message || (typeof err === 'string' ? err : 'Unexpected error occurred.');
     showToast('Error posting item: ' + errMsg, 'error');
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = `<span>Publish Item</span>`;
+    isPostSubmitting = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>Publish Item</span>`;
+    }
   }
 }
 
