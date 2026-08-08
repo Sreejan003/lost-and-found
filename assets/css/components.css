@@ -46,7 +46,7 @@
   opacity: 0.85;
 }
 .brand-logo svg {
-  color: var(--brand-primary, #6366f1);
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
@@ -156,8 +156,8 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: var(--brand-primary, #6366f1);
-  color: #FFF;
+  background-color: var(--text-primary);
+  color: var(--text-inverse, #FFFFFF);
   display: flex;
   align-items: center;
   justify-content: center;

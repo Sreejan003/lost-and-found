@@ -83,7 +83,7 @@
   
   --border-subtle: #E2E8F0;
   --border-strong: #CBD5E1;
-  --border-focus: #4F46E5;
+  --border-focus: #0F172A;
   
   --text-primary: #0F172A;
   --text-secondary: #475569;
@@ -94,9 +94,9 @@
   --input-bg: #FFFFFF;
   --nav-bg: rgba(255, 255, 255, 0.92);
 
-  --brand-primary: #4F46E5;
-  --brand-hover: #4338CA;
-  --brand-light: #EEF2FF;
+  --brand-primary: #0F172A;
+  --brand-hover: #1E293B;
+  --brand-light: #F1F5F9;
 
   --accent-success: #16A34A;
   --accent-success-bg: #DCFCE7;
