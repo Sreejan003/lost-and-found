@@ -190,10 +190,10 @@
       `).join('');
     }
 
-    window.markReturned = (id) => {
+    window.markReturned = async (id) => {
       const item = LocalDB.getItemById(id);
       if (item && confirm(`Mark "${item.title}" as returned?`)) {
-        LocalDB.saveItem({ ...item, status: 'returned' });
+        await LocalDB.saveItem({ ...item, status: 'returned' });
         showToast('Item status updated to Returned!', 'success');
         loadUserReports();
       }

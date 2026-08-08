@@ -333,7 +333,7 @@
 
     async function handleMarkReturned() {
       if (confirm('Are you sure you want to mark this item as successfully returned?')) {
-        LocalDB.saveItem({ ...currentItem, status: 'returned' });
+        await LocalDB.saveItem({ ...currentItem, status: 'returned' });
         showToast('Item status updated to Returned!', 'success');
         loadItemDetails(currentItem.id);
       }

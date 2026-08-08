@@ -337,12 +337,20 @@ async function handlePostItemSubmit(e) {
 
     const userId = currentUser?.id || 'anonymous';
 
-    const newItem = LocalDB.saveItem({
+    const catObj = categories.find(c => String(c.id) === String(category_id));
+    const locObj = locations.find(l => String(l.id) === String(location_id));
+
+    const category_name = catObj?.name || 'Other';
+    const location_name = locObj?.name || 'Campus';
+
+    const newItem = await LocalDB.saveItem({
       user_id: userId,
       title,
       description,
       category_id,
+      category_name,
       location_id,
+      location_name,
       item_type,
       color,
       distinguishing_features: features,

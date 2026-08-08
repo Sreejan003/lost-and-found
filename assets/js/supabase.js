@@ -197,7 +197,7 @@ export const LocalDB = {
   getItemById(id) {
     return this.getItems().find(i => String(i.id) === String(id));
   },
-  saveItem(itemData) {
+  async saveItem(itemData) {
     const items = this.getCollection(DB_KEYS.ITEMS);
     const newItem = {
       id: itemData.id || Date.now(),
@@ -206,45 +206,71 @@ export const LocalDB = {
       reported_date: itemData.reported_date || new Date().toISOString().split('T')[0],
       ...itemData
     };
+
+    // 1. Save to local storage cache immediately
     const idx = items.findIndex(i => String(i.id) === String(newItem.id));
     if (idx >= 0) items[idx] = newItem;
     else items.unshift(newItem);
     this.saveCollection(DB_KEYS.ITEMS, items);
 
+    // 2. Sync to Supabase remote database
     if (supabaseClient) {
-      const dbPayload = {
-        title: newItem.title,
-        description: newItem.description,
-        category: newItem.category_name || newItem.category || '',
-        category_id: newItem.category_id || null,
-        location: newItem.location_name || newItem.location || 'Campus',
-        location_id: newItem.location_id || null,
-        item_type: newItem.item_type,
-        reported_date: newItem.reported_date,
-        color: newItem.color || '',
-        distinguishing_features: newItem.distinguishing_features || '',
-        status: newItem.status || 'active'
-      };
+      try {
+        const dbPayload = {
+          title: newItem.title,
+          description: newItem.description || '',
+          category: newItem.category_name || newItem.category || 'Other',
+          category_id: newItem.category_id || null,
+          location: newItem.location_name || newItem.location || 'Campus',
+          location_id: newItem.location_id || null,
+          item_type: newItem.item_type || 'lost',
+          reported_date: newItem.reported_date,
+          color: newItem.color || '',
+          distinguishing_features: newItem.distinguishing_features || '',
+          status: newItem.status || 'active'
+        };
 
-      if (newItem.user_id && String(newItem.user_id).includes('-')) {
-        dbPayload.user_id = newItem.user_id;
-      }
-
-      supabaseClient.from('items').insert([dbPayload]).select().then(async ({ data, error }) => {
-        if (!error && data && data[0]) {
-          const savedRemoteItem = data[0];
-          if (newItem.image_url) {
-            await supabaseClient.from('images').insert([{
-              item_id: savedRemoteItem.id,
-              image_url: newItem.image_url,
-              is_primary: true
-            }]).catch(e => console.warn("Supabase image table notice:", e));
-          }
-        } else if (error) {
-          const fallbackPayload = { ...dbPayload, id: newItem.id };
-          supabaseClient.from('items').upsert([fallbackPayload]).catch(e => console.warn("Supabase item sync fallback notice:", e));
+        if (newItem.user_id && typeof newItem.user_id === 'string' && newItem.user_id.includes('-') && newItem.user_id.length > 20) {
+          dbPayload.user_id = newItem.user_id;
         }
-      }).catch(e => console.warn("Supabase item sync exception:", e));
+
+        const { data: insertedData, error: insertError } = await supabaseClient
+          .from('items')
+          .insert([dbPayload])
+          .select();
+
+        let remoteItem = null;
+        if (!insertError && insertedData && insertedData[0]) {
+          remoteItem = insertedData[0];
+        } else if (insertError) {
+          console.warn("Notice: Supabase insert attempt notice:", insertError);
+          if (dbPayload.user_id) {
+            delete dbPayload.user_id;
+            const { data: retryData } = await supabaseClient.from('items').insert([dbPayload]).select().catch(() => ({ data: null }));
+            if (retryData && retryData[0]) remoteItem = retryData[0];
+          }
+        }
+
+        if (newItem.image_url && remoteItem && remoteItem.id) {
+          await supabaseClient.from('images').insert([{
+            item_id: remoteItem.id,
+            image_url: newItem.image_url,
+            is_primary: true
+          }]).catch(e => console.warn("Supabase images table insert notice:", e));
+        }
+
+        if (remoteItem && remoteItem.id) {
+          newItem.id = remoteItem.id;
+          const updatedItems = this.getCollection(DB_KEYS.ITEMS);
+          const uIdx = updatedItems.findIndex(i => String(i.id) === String(newItem.id) || i.title === newItem.title);
+          if (uIdx >= 0) {
+            updatedItems[uIdx] = { ...updatedItems[uIdx], ...newItem };
+            this.saveCollection(DB_KEYS.ITEMS, updatedItems);
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase item sync exception:", err);
+      }
     }
 
     return newItem;
